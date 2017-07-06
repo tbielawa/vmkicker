@@ -9,9 +9,9 @@ if [ `id -u` -ne '0' ]; then
 fi
 
 VMS='m01.example.com n01.example.com n02.example.com'
-
 CHOICES=`mktemp`
 
+######################################################################
 dialog \
     --backtitle 'Virtual Machine Kicker' \
     --no-tags \
@@ -19,12 +19,42 @@ dialog \
     --checklist 'Virtual Machines' 10     50    10 \
     m01 m01.example.com off \
     n01 n01.example.com off \
-    n02 n02.example.com off \
-    --title "Confirm" \
-    --yesno "Start VMs after kick?" 6 30 2>${CHOICES}
+    n02 n02.example.com off 2>${CHOICES}
 
+if [ "${?}" -ne "0" ]; then
+    # You hit ctrl+c
+    exit
+fi
+
+######################################################################
+function start_vms_prompt() {
+    dialog \
+	--backtitle 'Virtual Machine Kicker' \
+	--title "Confirm" \
+	--yesno "Start VMs after kick?" 6 30
+    return ${?}
+}
+
+function do_it_confirm() {
+    dialog \
+	--backtitle 'Virtual Machine Kicker' \
+	--title "Confirm" \
+	--yesno "Ready?" 6 30
+    return ${?}
+}
+
+######################################################################
+start_vms_prompt
 STARTVMS=${?}
 
+# This is our last chance to abort if we decide to change our minds
+do_it_confirm
+if [ "${?}" -ne "0" ]; then
+    echo "Not going to do anything..."
+    exit 0
+fi
+
+######################################################################
 pushd /var/lib/libvirt/images/ >/dev/null 2>&1
 
 for img in $(<${CHOICES}); do
