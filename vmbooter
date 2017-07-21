@@ -15,7 +15,7 @@ CHOICES=`mktemp`
 dialog \
     --backtitle 'Virtual Machine Kicker' \
     --no-tags \
-    --title 'Select the VMs to kick' \
+    --title 'Select the VMs to start' \
     --checklist 'Virtual Machines' 10     50    10 \
     m01 m01.example.com off \
     n01 n01.example.com off \
@@ -26,28 +26,18 @@ if [ "${?}" -ne "0" ]; then
     exit
 fi
 
-######################################################################
-function start_vms_prompt() {
-    dialog \
-	--backtitle 'Virtual Machine Kicker' \
-	--title "Confirm" \
-	--yesno "Start VMs after kick?" 6 30
-    return ${?}
-}
 
 function do_it_confirm() {
     dialog \
 	--backtitle 'Virtual Machine Kicker' \
 	--title "Confirm" \
-	--yesno "Ready to kick it?" 6 30
+	--yesno "Ready to start?" 6 30
     return ${?}
 }
 
-######################################################################
-start_vms_prompt
-STARTVMS=${?}
 
 # This is our last chance to abort if we decide to change our minds
+
 do_it_confirm
 if [ "${?}" -ne "0" ]; then
     echo "Not going to do anything..."
@@ -55,17 +45,10 @@ if [ "${?}" -ne "0" ]; then
 fi
 
 ######################################################################
-pushd /var/lib/libvirt/images/ >/dev/null 2>&1
-
 for img in $(<${CHOICES}); do
     i="${img}.example.com"
-    virsh destroy ${i}
-    rm -f ${i}
-    qemu-img create -f qcow2 -b `pwd -P`/${i}-base ${i}
-    if [ "${STARTVMS}" -eq "0" ]; then
-	virsh start ${i}
-    fi
-    echo "---"
+    virsh start ${i}
 done
+
 
 rm $CHOICES
